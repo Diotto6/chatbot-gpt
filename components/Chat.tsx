@@ -12,9 +12,9 @@ import {
   CardContent,
   CardFooter,
 } from "./ui/card";
-import { askQuestion } from "@/app/chat/route";
 import { ChangeEvent, FormEvent, Fragment, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { POST } from "@/app/api/chat/route";
 
 interface Chat {
   role?: {
@@ -35,7 +35,8 @@ export default function Chat(props: ChatProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = await askQuestion(question!);
+
+    const data = await POST(question!);
 
     if (data.message) {
       toast({
