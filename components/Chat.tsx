@@ -12,7 +12,7 @@ import {
   CardContent,
   CardFooter,
 } from "./ui/card";
-import { askQuestion } from "@/app/api/chat/route";
+import { askQuestion } from "@/app/chat/route";
 import { ChangeEvent, FormEvent, Fragment, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
