@@ -1,147 +1,149 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import React, { ChangeEvent, FormEvent, Fragment, useState } from "react";
 import {
+  ThreeDotsLoading,
+  Avatar,
+  AvatarFallback,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/components/ui/use-toast";
-import axios from "axios";
-import { ChangeEvent, FormEvent, Fragment, useState } from "react";
+  Input,
+  ScrollArea,
+  Toaster,
+  toast,
+  StreamAnimation,
+} from "./components";
+import { askQuestion } from "./api";
+import { isErrorWithMessage } from "./isErrorWithMessage";
 
 interface Chat {
-  role?: {
-    user?: string;
-    chatbot?: string;
-  }[];
+  message?: string;
+  sender?: "user" | "ai";
 }
 
-async function askQuestion(question: string) {
-  console.log(question);
-  const options = {
-    method: "POST",
-    url: "https://chatgpt-api8.p.rapidapi.com/",
-    headers: {
-      "content-type": "application/json",
-      "X-RapidAPI-Key": "5dd4b89141msh4f1a364c7db0462p15dc6ejsnd6222f4bb78c",
-      "X-RapidAPI-Host": "chatgpt-api8.p.rapidapi.com",
-    },
-    data: [
-      {
-        content: question,
-        role: "user",
-      },
-    ],
-  };
-
-  try {
-    const response = await axios.request(options);
-    if (response.data.message) return response.data;
-    return response.data;
-  } catch (error) {
-    console.error(error);
-    return error;
-  }
-}
 export default function Home() {
-  const [question, setQuestion] = useState<string | undefined>("");
-  const [chat, setChat] = useState<Chat | undefined>({ role: [] });
-  const { toast } = useToast();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [disabled, setDisabled] = useState<boolean>(true);
+  const [messages, setMessages] = useState<Chat[]>([]);
+  const [userMessage, setUserMessage] = useState("");
 
   const handleChangeQuestion = (event: ChangeEvent<HTMLInputElement>) => {
-    setQuestion(event.target.value);
+    setUserMessage(event.target.value);
+    setDisabled(false);
+  };
+
+  const addMessage = (message: string, sender: "user" | "ai") => {
+    setMessages((prevMessages) => [...prevMessages, { message, sender }]);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    const data = await askQuestion(question!);
-
-    if (data?.message) {
-      toast({
-        title: "Aviso",
-        description: "Máximo de perguntas por dia excedidos",
-        variant: "destructive",
-      });
-      setQuestion("");
-    } else {
-      const newRole = {
-        user: question,
-        chatbot: question,
-      };
-      setChat((prevState) => ({
-        role: prevState?.role?.concat(newRole),
-      }));
-
-      setQuestion("");
+    setLoading(true);
+    setUserMessage("");
+    addMessage(userMessage, "user");
+    setDisabled(true);
+    try {
+      const data = await askQuestion(userMessage!);
+      if (data?.text) {
+        const utf8Text = new TextDecoder().decode(
+          new TextEncoder().encode(data.text)
+        );
+        setLoading(false);
+        addMessage(utf8Text, "ai");
+      }
+    } catch (error) {
+      if (isErrorWithMessage(error)) {
+        toast({
+          description: error.message as string,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          description: "An unknown error occurred",
+          variant: "destructive",
+        });
+      }
     }
   };
+
   return (
     <div className="flex min-h-screen bg-zinc-100 items-center justify-center">
-      <Card className="w-[700px] h-[700px] grid grid-rows-[min-content_1fr_min-content]">
+      <Card className="w-[800px]">
         <CardHeader>
           <CardTitle>Chat AI</CardTitle>
           <CardDescription>
             Using rapidAPI chatgpt to create a chat bot.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {chat?.role?.length
-            ? chat.role.map((e, index) => (
+        <CardContent>
+          <ScrollArea className="w-full h-[400px] pr-4">
+            {messages?.map((msg, index) => {
+              return (
                 <Fragment key={index}>
-                  {e.user && (
-                    <div className="flex gap-3 text-zinc-600 text-sm">
-                      <Avatar>
-                        <AvatarFallback>ND</AvatarFallback>
-                        <AvatarImage src="https://github.com/Diotto6.png" />
-                      </Avatar>
-                      <p className="loading-relaxed pt-2">
-                        <span className="bolck font-bold text-zinc-700 text-sm pr-2">
-                          Humano:
-                        </span>
-                        {e.user}
-                      </p>
-                    </div>
+                  {msg.sender === "user" && (
+                    <>
+                      <div className="flex gap-3 text-zinc-600 text-sm mb-4">
+                        <Avatar>
+                          <AvatarFallback>HM</AvatarFallback>
+                        </Avatar>
+                        <p className="loading-relaxed pt-2">
+                          <span className="font-bold text-zinc-700 text-sm pr-2">
+                            Humano:
+                          </span>
+                          {msg.message}
+                        </p>
+                      </div>
+                    </>
                   )}
-                  {e.chatbot && (
-                    <div className="flex gap-3 text-zinc-600 text-sm">
+                  {loading && index - 1 ? (
+                    <div className="flex gap-3 text-zinc-600 text-sm mb-4">
                       <Avatar>
-                        <AvatarFallback>CH</AvatarFallback>
-                        <AvatarImage src="https://github.com/RocketChat.png" />
+                        <AvatarFallback>AI</AvatarFallback>
                       </Avatar>
-                      <p className="loading-relaxed pt-2">
-                        <span className="bolck font-bold text-zinc-700 text-sm pr-2">
+                      <p className="pt-2 flex items-center justify-between">
+                        <span className="block font-bold text-zinc-700 text-sm pr-2 pb-4">
                           AI:
                         </span>
-                        {e.chatbot}
+                      </p>
+                      <ThreeDotsLoading />
+                    </div>
+                  ) : msg.sender === "ai" && msg.message?.length ? (
+                    <div className="flex gap-3 text-zinc-600 text-sm mb-4">
+                      <Avatar>
+                        <AvatarFallback>AI</AvatarFallback>
+                      </Avatar>
+                      <p className="loading-relaxed pt-2">
+                        <span className="font-bold text-zinc-700 text-sm pr-2 pb-4">
+                          AI:
+                        </span>
+                        <StreamAnimation text={msg?.message} interval={35} />
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </Fragment>
-              ))
-            : null}
+              );
+            })}
+          </ScrollArea>
         </CardContent>
         <CardFooter>
           <form className="w-full flex gap-2" onSubmit={handleSubmit}>
             <Input
-              value={question}
+              value={userMessage}
               onChange={handleChangeQuestion}
               placeholder="Como posso te ajudar hoje?"
             />
-            <Button type="submit" disabled={!question}>
+            <Button type="submit" disabled={disabled}>
               Enviar
             </Button>
           </form>
         </CardFooter>
-        <Toaster />
       </Card>
+      <Toaster />
     </div>
   );
 }
