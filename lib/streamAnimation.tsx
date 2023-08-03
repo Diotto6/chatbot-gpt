@@ -13,7 +13,7 @@ export default function StreamAnimation({
   const [typedText, setTypedText] = useState<string[]>([]);
 
   useEffect(() => {
-    let currentIndex = -1;
+    let currentIndex = -2;
     const chars = text.split("");
 
     const typingInterval = setInterval(() => {

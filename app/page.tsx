@@ -1,6 +1,13 @@
 "use client";
 
-import React, { ChangeEvent, FormEvent, Fragment, useState } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ThreeDotsLoading,
   Avatar,
@@ -20,6 +27,7 @@ import {
 } from "./components";
 import { askQuestion } from "./api";
 import { isErrorWithMessage } from "./isErrorWithMessage";
+import { ScrollBar } from "@/components/ui/scroll-area";
 
 interface Chat {
   message?: string;
@@ -37,16 +45,21 @@ export default function Home() {
     setDisabled(false);
   };
 
-  const addMessage = (message: string, sender: "user" | "ai") => {
-    setMessages((prevMessages) => [...prevMessages, { message, sender }]);
-  };
+  function addMessage(message: string, sender: "user" | "ai") {
+    return setMessages((prevMessages) => [
+      ...prevMessages,
+      { message, sender },
+    ]);
+  }
+  console.log(messages);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setUserMessage("");
     addMessage(userMessage, "user");
+    setUserMessage("");
     setDisabled(true);
+
     try {
       const data = await askQuestion(userMessage!);
       if (data?.text) {
@@ -62,14 +75,38 @@ export default function Home() {
           description: error.message as string,
           variant: "destructive",
         });
+        setLoading(false);
       } else {
         toast({
           description: "An unknown error occurred",
           variant: "destructive",
         });
+        setLoading(false);
       }
     }
   };
+
+  const scrollingDivRef = useRef<any>();
+  const contentRef = useRef<any>();
+
+  useEffect(() => {
+    const scrollingDiv = scrollingDivRef.current;
+    const content = contentRef.current;
+
+    const checkWidthAndScroll = () => {
+      if (content?.offsetWidth > 600) {
+        const scrollOff = content?.offsetWidth - scrollingDiv?.offsetWidth;
+        scrollingDiv.scrollLeft = scrollOff;
+      }
+    };
+
+    window.addEventListener("resize", checkWidthAndScroll);
+    checkWidthAndScroll();
+
+    return () => {
+      window.removeEventListener("resize", checkWidthAndScroll);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-zinc-100 items-center justify-center">
@@ -81,8 +118,10 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="w-full h-[400px] pr-4">
+          <ScrollArea ref={scrollingDivRef} className="w-full h-[400px] pr-4">
             {messages?.map((msg, index) => {
+              console.log(index);
+
               return (
                 <Fragment key={index}>
                   {msg.sender === "user" && (
@@ -100,7 +139,7 @@ export default function Home() {
                       </div>
                     </>
                   )}
-                  {loading && index - 1 ? (
+                  {loading && index === messages.length - 1 ? (
                     <div className="flex gap-3 text-zinc-600 text-sm mb-4">
                       <Avatar>
                         <AvatarFallback>AI</AvatarFallback>
@@ -125,6 +164,7 @@ export default function Home() {
                       </p>
                     </div>
                   ) : null}
+                  <div ref={contentRef} />
                 </Fragment>
               );
             })}
