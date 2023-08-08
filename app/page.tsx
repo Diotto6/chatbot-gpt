@@ -8,8 +8,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { askQuestion } from "./api";
+import { isErrorWithMessage } from "./isErrorWithMessage";
 import {
   ThreeDotsLoading,
+  ScrollArea,
   Avatar,
   AvatarFallback,
   Button,
@@ -20,14 +23,10 @@ import {
   CardHeader,
   CardTitle,
   Input,
-  ScrollArea,
   Toaster,
   toast,
   StreamAnimation,
 } from "./components";
-import { askQuestion } from "./api";
-import { isErrorWithMessage } from "./isErrorWithMessage";
-import { ScrollBar } from "@/components/ui/scroll-area";
 
 interface Chat {
   message?: string;
@@ -46,12 +45,8 @@ export default function Home() {
   };
 
   function addMessage(message: string, sender: "user" | "ai") {
-    return setMessages((prevMessages) => [
-      ...prevMessages,
-      { message, sender },
-    ]);
+    setMessages((prevMessages) => [...prevMessages, { message, sender }]);
   }
-  console.log(messages);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -59,7 +54,6 @@ export default function Home() {
     addMessage(userMessage, "user");
     setUserMessage("");
     setDisabled(true);
-
     try {
       const data = await askQuestion(userMessage!);
       if (data?.text) {
@@ -85,91 +79,75 @@ export default function Home() {
       }
     }
   };
-
-  const scrollingDivRef = useRef<any>();
-  const contentRef = useRef<any>();
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const scrollingDiv = scrollingDivRef.current;
-    const content = contentRef.current;
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [loading]);
 
-    const checkWidthAndScroll = () => {
-      if (content?.offsetWidth > 600) {
-        const scrollOff = content?.offsetWidth - scrollingDiv?.offsetWidth;
-        scrollingDiv.scrollLeft = scrollOff;
-      }
-    };
-
-    window.addEventListener("resize", checkWidthAndScroll);
-    checkWidthAndScroll();
-
-    return () => {
-      window.removeEventListener("resize", checkWidthAndScroll);
-    };
-  }, []);
+  const content = (
+    <ScrollArea className="w-full h-full flex-grow-1">
+      {messages.map((msg, index) => (
+        <Fragment key={index}>
+          {msg.sender === "user" && (
+            <div className="flex gap-3 text-zinc-600 text-sm mb-4">
+              <Avatar>
+                <AvatarFallback>HM</AvatarFallback>
+              </Avatar>
+              <p className="loading-relaxed pt-2">
+                <span className="font-bold text-zinc-700 text-sm pr-2">
+                  Humano:
+                </span>
+                {msg.message}
+              </p>
+            </div>
+          )}
+          {loading && index === messages.length - 1 ? (
+            <div className="flex gap-3 text-zinc-600 text-sm mb-4">
+              <Avatar>
+                <AvatarFallback>AI</AvatarFallback>
+              </Avatar>
+              <p className="pt-2 flex items-center justify-between">
+                <span className="block font-bold text-zinc-700 text-sm pr-2 pb-4">
+                  AI:
+                </span>
+              </p>
+              <ThreeDotsLoading />
+            </div>
+          ) : msg.sender === "ai" && msg.message?.length ? (
+            <div className="flex gap-3 text-zinc-600 text-sm mb-4">
+              <Avatar>
+                <AvatarFallback>AI</AvatarFallback>
+              </Avatar>
+              <p className="loading-relaxed pt-2">
+                <span className="font-bold text-zinc-700 text-sm pr-2 pb-4">
+                  AI:
+                </span>
+                <StreamAnimation text={msg?.message} interval={35} />
+              </p>
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
+    </ScrollArea>
+  );
 
   return (
-    <div className="flex min-h-screen bg-zinc-100 items-center justify-center">
-      <Card className="w-[800px]">
+    <div
+      className="flex min-h-screen bg-zinc-100 items-center justify-center"
+      ref={chatContainerRef}
+    >
+      <Card className="w-[800px] h-full">
         <CardHeader>
           <CardTitle>Chat AI</CardTitle>
           <CardDescription>
             Using rapidAPI chatgpt to create a chat bot.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ScrollArea ref={scrollingDivRef} className="w-full h-[400px] pr-4">
-            {messages?.map((msg, index) => {
-              console.log(index);
-
-              return (
-                <Fragment key={index}>
-                  {msg.sender === "user" && (
-                    <>
-                      <div className="flex gap-3 text-zinc-600 text-sm mb-4">
-                        <Avatar>
-                          <AvatarFallback>HM</AvatarFallback>
-                        </Avatar>
-                        <p className="loading-relaxed pt-2">
-                          <span className="font-bold text-zinc-700 text-sm pr-2">
-                            Humano:
-                          </span>
-                          {msg.message}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                  {loading && index === messages.length - 1 ? (
-                    <div className="flex gap-3 text-zinc-600 text-sm mb-4">
-                      <Avatar>
-                        <AvatarFallback>AI</AvatarFallback>
-                      </Avatar>
-                      <p className="pt-2 flex items-center justify-between">
-                        <span className="block font-bold text-zinc-700 text-sm pr-2 pb-4">
-                          AI:
-                        </span>
-                      </p>
-                      <ThreeDotsLoading />
-                    </div>
-                  ) : msg.sender === "ai" && msg.message?.length ? (
-                    <div className="flex gap-3 text-zinc-600 text-sm mb-4">
-                      <Avatar>
-                        <AvatarFallback>AI</AvatarFallback>
-                      </Avatar>
-                      <p className="loading-relaxed pt-2">
-                        <span className="font-bold text-zinc-700 text-sm pr-2 pb-4">
-                          AI:
-                        </span>
-                        <StreamAnimation text={msg?.message} interval={35} />
-                      </p>
-                    </div>
-                  ) : null}
-                  <div ref={contentRef} />
-                </Fragment>
-              );
-            })}
-          </ScrollArea>
-        </CardContent>
+        <CardContent>{content}</CardContent>
         <CardFooter>
           <form className="w-full flex gap-2" onSubmit={handleSubmit}>
             <Input
