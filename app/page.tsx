@@ -27,6 +27,7 @@ import {
   toast,
   StreamAnimation,
 } from "./components";
+import { ChatScrollAnchor } from "@/components/ChatScroolAnchor";
 
 interface Chat {
   message?: string;
@@ -34,6 +35,7 @@ interface Chat {
 }
 
 export default function Home() {
+  const [loadingAnchor, setLoadingAnchor] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [disabled, setDisabled] = useState<boolean>(true);
   const [messages, setMessages] = useState<Chat[]>([]);
@@ -54,6 +56,7 @@ export default function Home() {
     addMessage(userMessage, "user");
     setUserMessage("");
     setDisabled(true);
+    setLoadingAnchor(true);
     try {
       const data = await askQuestion(userMessage!);
       if (data?.text) {
@@ -69,6 +72,9 @@ export default function Home() {
           description: error.message as string,
           variant: "destructive",
         });
+        const newMessages = messages.slice();
+        newMessages.slice(-1, 1);
+        setMessages(newMessages);
         setLoading(false);
       } else {
         toast({
@@ -79,17 +85,9 @@ export default function Home() {
       }
     }
   };
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, [loading]);
 
   const content = (
-    <ScrollArea className="w-full h-full flex-grow-1">
+    <ScrollArea className="w-full h-[300px] flex-grow-1">
       {messages.map((msg, index) => (
         <Fragment key={index}>
           {msg.sender === "user" && (
@@ -126,20 +124,22 @@ export default function Home() {
                 <span className="font-bold text-zinc-700 text-sm pr-2 pb-4">
                   AI:
                 </span>
-                <StreamAnimation text={msg?.message} interval={35} />
+                <StreamAnimation
+                  isAction={() => setLoadingAnchor(!false)}
+                  text={msg?.message}
+                  interval={35}
+                />
               </p>
             </div>
           ) : null}
+          <ChatScrollAnchor trackVisibility={loadingAnchor} />
         </Fragment>
       ))}
     </ScrollArea>
   );
 
   return (
-    <div
-      className="flex min-h-screen bg-zinc-100 items-center justify-center"
-      ref={chatContainerRef}
-    >
+    <div className="flex min-h-screen bg-zinc-100 items-center justify-center">
       <Card className="w-[800px] h-full">
         <CardHeader>
           <CardTitle>Chat AI</CardTitle>

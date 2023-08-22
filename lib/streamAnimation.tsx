@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 interface StreamAnimationProps {
   text: string;
   interval: number;
+  isAction: () => void;
 }
 
 export default function StreamAnimation({
   text,
+  isAction,
   interval,
 }: StreamAnimationProps) {
   const [typedText, setTypedText] = useState<string[]>([]);
@@ -19,6 +21,7 @@ export default function StreamAnimation({
     const typingInterval = setInterval(() => {
       if (currentIndex === chars.length) {
         clearInterval(typingInterval);
+        isAction();
       } else {
         setTypedText((prevTypedText) => [
           ...prevTypedText,

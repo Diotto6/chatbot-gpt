@@ -5,9 +5,9 @@ export async function askQuestion(question: string) {
     method: "POST",
     url: "https://chatgpt-api8.p.rapidapi.com/",
     headers: {
-      "content-type": "application/json",
-      "X-RapidAPI-Key": "5dd4b89141msh4f1a364c7db0462p15dc6ejsnd6222f4bb78c",
-      "X-RapidAPI-Host": "chatgpt-api8.p.rapidapi.com",
+      'content-type': 'application/json',
+      'X-RapidAPI-Key': '5dd4b89141msh4f1a364c7db0462p15dc6ejsnd6222f4bb78c',
+      'X-RapidAPI-Host': 'chatgpt-api8.p.rapidapi.com'
     },
     data: [
       {
