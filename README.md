@@ -7,6 +7,6 @@ site using chatgpt api to code a chatgpt bot with javascript. we created a proje
 Api has daily limits of 10 requests
 
 
-## Scrreanshot
+## Screenshot
 
 ![Screeanshot do chatbot AI](./screen.png)
